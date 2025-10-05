@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Restaurant AI Assistant</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+    .tab-buttons button {
+      padding: 10px 20px;
+      margin-right: 10px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    .tab-buttons button.active {
+      background-color: #0056b3;
+    }
+    .tab-content {
+      margin-top: 20px;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button.generate {
+      background-color: #28a745;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+    }
+    .result {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>🍽️ Restaurant AI Assistant</h1>
+
+  <div class="tab-buttons">
+    <button onclick="showTab('post')" id="postBtn" class="active">Social Post Generator</button>
+    <button onclick="showTab('review')" id="reviewBtn">Review Reply Assistant</button>
+  </div>
+
+  <div id="postTab" class="tab-content">
+    <h2>Generate a Social Post</h2>
+    <input id="dish" type="text" placeholder="Dish name" />
+    <input id="theme" type="text" placeholder="Theme (e.g. Taco Tuesday)" />
+    <input id="tone" type="text" placeholder="Tone (e.g. casual, elegant)" />
+    <button onclick="generatePost()" class="generate">Generate</button>
+    <p id="postResult" class="result"></p>
+  </div>
+
+  <div id="reviewTab" class="tab-content" style="display: none;">
+    <h2>Respond to a Review</h2>
+    <textarea id="reviewText" placeholder="Paste review here"></textarea>
+    <select id="sentiment">
+      <option value="positive">Positive</option>
+      <option value="neutral">Neutral</option>
+      <option value="negative">Negative</option>
+    </select>
+    <input id="replyTone" type="text" placeholder="Tone (e.g. warm, professional)" />
+    <button onclick="respondReview()" class="generate">Generate Reply</button>
+    <p id="reviewResult" class="result"></p>
+  </div>
+
+  <script>
+    function showTab(tab) {
+      document.getElementById('postTab').style.display = tab === 'post' ? 'block' : 'none';
+      document.getElementById('reviewTab').style.display = tab === 'review' ? 'block' : 'none';
+      document.getElementById('postBtn').classList.toggle('active', tab === 'post');
+      document.getElementById('reviewBtn').classList.toggle('active', tab === 'review');
+    }
+
+    async function generatePost() {
+      const dish = document.getElementById('dish').value;
+      const theme = document.getElementById('theme').value;
+      const tone = document.getElementById('tone').value;
+
+      const res = await fetch('http://localhost:5000/generate_post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dish_name: dish, theme, tone })
+      });
+      const data = await res.json();
+      document.getElementById('postResult').innerText = data.caption;
+    }
+
+    async function respondReview() {
+      const reviewText = document.getElementById('reviewText').value;
+      const sentiment = document.getElementById('sentiment').value;
+      const tone = document.getElementById('replyTone').value;
+
+      const res = await fetch('http://localhost:5000/respond_review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ review_text: reviewText, sentiment, tone })
+      });
+      const data = await res.json();
+      document.getElementById('reviewResult').innerText = data.reply;
+    }
+  </script>
+</body>
+</html>
