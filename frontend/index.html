@@ -48,6 +48,12 @@
       margin-top: 15px;
       font-weight: bold;
     }
+    .history-block {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+      background-color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -56,8 +62,10 @@
   <div class="tab-buttons">
     <button onclick="showTab('post')" id="postBtn" class="active">Social Post Generator</button>
     <button onclick="showTab('review')" id="reviewBtn">Review Reply Assistant</button>
+    <button onclick="showTab('history')" id="historyBtn">View History</button>
   </div>
 
+  <!-- Social Post Generator -->
   <div id="postTab" class="tab-content">
     <h2>Generate a Social Post</h2>
     <input id="dish" type="text" placeholder="Dish name" />
@@ -67,6 +75,7 @@
     <p id="postResult" class="result"></p>
   </div>
 
+  <!-- Review Reply Assistant -->
   <div id="reviewTab" class="tab-content" style="display: none;">
     <h2>Respond to a Review</h2>
     <textarea id="reviewText" placeholder="Paste review here"></textarea>
@@ -80,18 +89,34 @@
     <p id="reviewResult" class="result"></p>
   </div>
 
+  <!-- History Viewer -->
+  <div id="historyTab" class="tab-content" style="display: none;">
+    <h2>History</h2>
+    <button onclick="loadHistory()">Refresh</button>
+    <button onclick="exportCSV()">Export to CSV</button>
+    <div id="historyList" style="margin-top: 15px;"></div>
+  </div>
+
   <script>
     function showTab(tab) {
       document.getElementById('postTab').style.display = tab === 'post' ? 'block' : 'none';
       document.getElementById('reviewTab').style.display = tab === 'review' ? 'block' : 'none';
+      document.getElementById('historyTab').style.display = tab === 'history' ? 'block' : 'none';
+
       document.getElementById('postBtn').classList.toggle('active', tab === 'post');
       document.getElementById('reviewBtn').classList.toggle('active', tab === 'review');
+      document.getElementById('historyBtn').classList.toggle('active', tab === 'history');
     }
 
     async function generatePost() {
       const dish = document.getElementById('dish').value;
       const theme = document.getElementById('theme').value;
       const tone = document.getElementById('tone').value;
+
+      if (!dish || !theme || !tone) {
+        alert("Please fill out all fields for the social post.");
+        return;
+      }
 
       const res = await fetch('http://localhost:5000/generate_post', {
         method: 'POST',
@@ -107,14 +132,15 @@
       const sentiment = document.getElementById('sentiment').value;
       const tone = document.getElementById('replyTone').value;
 
+      if (!reviewText || !sentiment || !tone) {
+        alert("Please complete all fields for the review reply.");
+        return;
+      }
+
       const res = await fetch('http://localhost:5000/respond_review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ review_text: reviewText, sentiment, tone })
       });
       const data = await res.json();
-      document.getElementById('reviewResult').innerText = data.reply;
-    }
-  </script>
-</body>
-</html>
+     
