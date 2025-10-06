@@ -1,11 +1,18 @@
 from flask import Flask, request, jsonify
 from jinja2 import Template
+from werkzeug.utils import secure_filename
 import ollama
 import json
 import csv
+import os
 from datetime import datetime
 
 app = Flask(__name__)
+
+# Setup image upload folder
+UPLOAD_FOLDER = 'static/uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Utility: Load and render prompt templates
 def render_prompt(template_path, variables):
@@ -27,24 +34,30 @@ def save_history(entry, filename='history.json'):
     with open(filename, 'w') as f:
         json.dump(history, f, indent=2)
 
-# Route: Generate Social Post
+# Route: Generate Social Post (with optional image)
 @app.route('/generate_post', methods=['POST'])
 def generate_post():
-    data = request.json
+    dish = request.form['dish_name']
+    theme = request.form['theme']
+    tone = request.form['tone']
+    image_file = request.files.get('image')
+
+    image_path = None
+    if image_file:
+        filename = secure_filename(image_file.filename)
+        image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        image_file.save(image_path)
+
     prompt = render_prompt(
         '../prompts/social_post_template.txt',
-        {
-            'dish_name': data['dish_name'],
-            'theme': data['theme'],
-            'tone': data['tone']
-        }
+        {'dish_name': dish, 'theme': theme, 'tone': tone}
     )
-    response = ollama.chat(model='mistral', messages=[{'role': 'user', 'content': prompt}])
+    response = ollama.chat(model='phi', messages=[{'role': 'user', 'content': prompt}])
     result = response['message']['content']
 
     save_history({
         'type': 'social_post',
-        'input': data,
+        'input': {'dish_name': dish, 'theme': theme, 'tone': tone, 'image': image_path},
         'output': result
     })
 
@@ -62,7 +75,7 @@ def respond_review():
             'tone': data['tone']
         }
     )
-    response = ollama.chat(model='mistral', messages=[{'role': 'user', 'content': prompt}])
+    response = ollama.chat(model='phi', messages=[{'role': 'user', 'content': prompt}])
     result = response['message']['content']
 
     save_history({
@@ -73,7 +86,7 @@ def respond_review():
 
     return jsonify({'reply': result})
 
-# Route: View History
+# Route: View Full History
 @app.route('/history', methods=['GET'])
 def get_history():
     try:
@@ -82,6 +95,21 @@ def get_history():
         return jsonify(history)
     except FileNotFoundError:
         return jsonify([])
+
+# Route: Filtered History
+@app.route('/history/filter', methods=['GET'])
+def filter_history():
+    entry_type = request.args.get('type')
+    try:
+        with open('history.json', 'r') as f:
+            history = json.load(f)
+    except FileNotFoundError:
+        return jsonify([])
+
+    if entry_type:
+        filtered = [h for h in history if h['type'] == entry_type]
+        return jsonify(filtered)
+    return jsonify(history)
 
 # Route: Export History to CSV
 @app.route('/export_csv', methods=['GET'])
