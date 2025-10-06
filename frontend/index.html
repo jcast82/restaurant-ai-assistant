@@ -71,6 +71,8 @@
     <input id="dish" type="text" placeholder="Dish name" />
     <input id="theme" type="text" placeholder="Theme (e.g. Taco Tuesday)" />
     <input id="tone" type="text" placeholder="Tone (e.g. casual, elegant)" />
+    <input type="file" id="postImage" accept="image/*" />
+    <img id="previewImage" style="max-width: 300px; margin-top: 10px;" />
     <button onclick="generatePost()" class="generate">Generate</button>
     <p id="postResult" class="result"></p>
   </div>
@@ -106,23 +108,40 @@
       document.getElementById('postBtn').classList.toggle('active', tab === 'post');
       document.getElementById('reviewBtn').classList.toggle('active', tab === 'review');
       document.getElementById('historyBtn').classList.toggle('active', tab === 'history');
+      document.getElementById('postImage').addEventListener('change', function () {
+        const file = this.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            document.getElementById('previewImage').src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        }
+      });
     }
 
     async function generatePost() {
       const dish = document.getElementById('dish').value;
       const theme = document.getElementById('theme').value;
       const tone = document.getElementById('tone').value;
+      const imageFile = document.getElementById('postImage').files[0];
 
       if (!dish || !theme || !tone) {
         alert("Please fill out all fields for the social post.");
         return;
       }
 
+      const formData = new FormData();
+      formData.append('dish_name', dish);
+      formData.append('theme', theme);
+      formData.append('tone', tone);
+      if (imageFile) formData.append('image', imageFile);
+
       const res = await fetch('http://localhost:5000/generate_post', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dish_name: dish, theme, tone })
+        body: formData
       });
+
       const data = await res.json();
       document.getElementById('postResult').innerText = data.caption;
     }
@@ -142,6 +161,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ review_text: reviewText, sentiment, tone })
       });
-      const data = await res.json();  
+      const data = await res.json(); 
+    } 
   </script>    
-</body>    
+</body>
